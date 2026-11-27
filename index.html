@@ -30,27 +30,20 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-a
 @media (prefers-color-scheme: dark){ .rings circle{mix-blend-mode:screen} }
 .kicker{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 10px}
 h1{font-family:var(--serif);font-weight:700;font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:0 0 14px;max-width:16ch}
-.lead{font-family:var(--serif);font-size:1.15rem;color:var(--muted);margin:0 0 22px;max-width:46ch}
 .btn{display:inline-block;background:var(--accent);color:var(--accent-text);text-decoration:none;border:0;border-radius:999px;padding:11px 20px;font:inherit;font-weight:600;cursor:pointer}
 .btn:hover{filter:brightness(1.06)}
 .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
-.btn:focus-visible,.event:focus-visible,.chip:focus-visible,input:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
+.btn:focus-visible,.event:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
-/* ---------- Filtres ---------- */
-.tools{position:sticky;top:0;z-index:5;background:var(--bg);padding:12px 0 10px;border-bottom:1px solid var(--line)}
-input[type=search]{width:100%;padding:11px 16px;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--text);font:inherit}
-.chips{display:flex;gap:8px;overflow-x:auto;padding:10px 0 2px;scrollbar-width:none}
-.chips::-webkit-scrollbar{display:none}
-.chip{flex:none;border:1px solid var(--line);background:transparent;color:var(--text);padding:6px 14px;border-radius:999px;font:inherit;font-size:.9rem;cursor:pointer}
-.chip[aria-pressed=true]{background:var(--text);color:var(--bg);border-color:var(--text)}
 .status{color:var(--muted);font-size:.9rem;margin:14px 0 0}
 
 /* ---------- Liste ---------- */
 .month{font-family:var(--serif);font-size:1.35rem;margin:34px 0 12px;text-transform:capitalize}
 .event{display:flex;gap:16px;align-items:center;width:100%;text-align:left;background:var(--card);color:var(--text);border:1px solid var(--line);border-radius:16px;padding:14px 16px;margin-bottom:10px;font:inherit;cursor:pointer;transition:transform .15s,border-color .15s}
 .event:hover{border-color:var(--accent);transform:translateY(-1px)}
-.date{flex:none;width:58px;text-align:center;line-height:1.05;border-radius:12px;padding:8px 0;background:var(--accent-soft)}
-.date b{display:block;font-family:var(--serif);font-size:1.7rem}
+.date{flex:none;width:58px;text-align:center;line-height:1.1;border-radius:12px;padding:8px 0;background:var(--accent-soft)}
+.date b{display:block;font-family:var(--serif);font-size:1.7rem;line-height:1.05}
+.date .wd{display:block;font-weight:700;color:var(--accent)}
 .date span{font-size:.72rem;text-transform:uppercase;letter-spacing:.08em;color:var(--muted)}
 .info{display:flex;flex-direction:column;gap:3px;min-width:0}
 .title{font-family:var(--serif);font-weight:700;font-size:1.1rem;line-height:1.25}
@@ -77,10 +70,6 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 .desc{white-space:pre-wrap;margin:0 0 20px}
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 
-/* ---------- Pied de page ---------- */
-.invite{margin-top:48px;padding:28px;border-radius:22px;background:var(--accent-soft);text-align:center}
-.invite h2{font-family:var(--serif);margin:0 0 8px;font-size:1.4rem}
-.invite p{margin:0 0 16px;color:var(--muted)}
 </style>
 </head>
 <body>
@@ -94,18 +83,11 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
     </svg>
     <p class="kicker" id="kicker">Agenda culturel collaboratif</p>
     <h1 id="titre">Café Culture Nancy</h1>
-    <p class="lead" id="accroche">Partager, rencontrer, découvrir</p>
     <a class="btn" id="btn-proposer" href="#" target="_blank" rel="noopener" hidden>Proposer un événement</a>
   </header>
 
   <div class="status" id="status" aria-live="polite">Chargement…</div>
   <main id="liste"></main>
-
-  <section class="invite" id="invite" hidden>
-    <h2>Une idée, une envie de partager ?</h2>
-    <p>Concert, lecture, débat, exposition, atelier… Proposez votre événement, il sera relu puis ajouté à l'agenda.</p>
-    <a class="btn" id="btn-proposer2" href="#" target="_blank" rel="noopener">Proposer un événement</a>
-  </section>
 </div>
 
 <dialog id="dlg">
@@ -137,7 +119,6 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 const CONFIG = {
   SURTITRE: "Agenda culturel collaboratif",
   TITRE: "Café Culture Nancy",
-  ACCROCHE: "Partager, rencontrer, découvrir",
   // Lien CSV de votre Google Sheet publié (Fichier > Partager > Publier sur le Web > format CSV)
   SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL4QJlIe9LFoeQlo2NYoeRIsddLqVr4Vaf-nBe46lX0dOn8wNnnOjZ7N2btQwf_XHgpXE0llq6HTqz/pub?gid=0&single=true&output=csv",
   // Lien de votre Google Form de proposition d'événement (laisser vide pour masquer les boutons)
@@ -264,6 +245,7 @@ const fmtLong  = new Intl.DateTimeFormat("fr-FR",{weekday:"long",day:"numeric",m
 const fmtDay   = new Intl.DateTimeFormat("fr-FR",{weekday:"long"});
 const fmtMonth = new Intl.DateTimeFormat("fr-FR",{month:"long",year:"numeric"});
 const fmtMon   = new Intl.DateTimeFormat("fr-FR",{month:"short"});
+const fmtWd    = new Intl.DateTimeFormat("fr-FR",{weekday:"short"});
 
 function upcoming(){
   const today=new Date(); today.setHours(0,0,0,0);
@@ -290,9 +272,10 @@ function render(){
     const b=document.createElement("button"); b.type="button"; b.className="event";
 
     const dt=document.createElement("span"); dt.className="date";
+    const wd=document.createElement("span"); wd.className="wd"; wd.textContent=fmtWd.format(e.date).replace(".","");
     const num=document.createElement("b"); num.textContent=e.date.getDate();
     const mon=document.createElement("span"); mon.textContent=fmtMon.format(e.date).replace(".","");
-    dt.append(num,mon);
+    dt.append(wd,num,mon);
 
     const info=document.createElement("span"); info.className="info";
     if(e.type){
@@ -348,12 +331,8 @@ $("dlg").addEventListener("click",ev=>{ if(ev.target===$("dlg")) $("dlg").close(
 async function init(){
   $("kicker").textContent=CONFIG.SURTITRE;
   $("titre").textContent=CONFIG.TITRE; document.title=CONFIG.TITRE;
-  $("accroche").textContent=CONFIG.ACCROCHE;
   const f=safeUrl(CONFIG.FORM_URL);
-  if(f){
-    for(const id of ["btn-proposer","btn-proposer2"]) $(id).href=f;
-    $("btn-proposer").hidden=false; $("invite").hidden=false;
-  }
+  if(f){ const b=$("btn-proposer"); b.href=f; b.hidden=false; }
   if(!CONFIG.SHEET_CSV_URL){
     EVENTS=demoEvents(); render();
     $("status").textContent="Mode démo (données fictives) · "+$("status").textContent;
