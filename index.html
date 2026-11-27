@@ -28,6 +28,10 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-a
 .hero .rings{position:absolute;right:-30px;top:10px;width:240px;height:150px;opacity:.9;pointer-events:none}
 .rings circle{mix-blend-mode:multiply}
 @media (prefers-color-scheme: dark){ .rings circle{mix-blend-mode:screen} }
+@media (max-width:640px){
+  .hero{padding-top:28px}
+  .hero .rings{position:static;display:block;width:132px;height:auto;margin:0 0 16px -8px}
+}
 .kicker{font-size:.8rem;letter-spacing:.14em;text-transform:uppercase;color:var(--accent);font-weight:700;margin:0 0 10px}
 h1{font-family:var(--serif);font-weight:700;font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:0 0 14px;max-width:16ch}
 .btn{display:inline-block;background:var(--accent);color:var(--accent-text);text-decoration:none;border:0;border-radius:999px;padding:11px 20px;font:inherit;font-weight:600;cursor:pointer}
@@ -61,9 +65,6 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 .meta{display:grid;grid-template-columns:auto 1fr;gap:6px 14px;margin:0 0 16px}
 .meta dt{color:var(--muted)}
 .meta dd{margin:0}
-.addr{color:var(--accent);font-weight:600;text-decoration:underline;text-underline-offset:3px}
-.addr::before{content:"📍 "}
-.addr:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
 .mapchoice{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:-6px 0 16px;font-size:.9rem;color:var(--muted)}
 .mapchoice a{color:var(--text);text-decoration:none;border:1px solid var(--line);border-radius:999px;padding:6px 14px;font-weight:600}
 .mapchoice a:hover{border-color:var(--accent)}
@@ -98,13 +99,12 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
       <dt>Date</dt><dd id="m-date"></dd>
       <dt>Heure</dt><dd id="m-heure"></dd>
       <dt>Lieu</dt><dd id="m-lieu"></dd>
-      <dt id="m-adr-dt">Adresse</dt><dd><a id="m-adr" class="addr" href="#" target="_blank" rel="noopener noreferrer"></a></dd>
+      <dt id="m-adr-dt">Adresse</dt><dd id="m-adr"></dd>
     </dl>
     <div class="mapchoice" id="m-maps" hidden>
       <span>Ouvrir avec :</span>
       <a id="mp-apple" href="#" target="_blank" rel="noopener noreferrer">Plans</a>
       <a id="mp-google" href="#" target="_blank" rel="noopener noreferrer">Google Maps</a>
-      <a id="mp-waze" href="#" target="_blank" rel="noopener noreferrer">Waze</a>
     </div>
     <p class="desc" id="m-desc"></p>
     <div class="actions">
@@ -177,15 +177,6 @@ function safeUrl(u){
   if(!/^https?:\/\//i.test(u)) u="https://"+u;
   try{ const x=new URL(u); return /^https?:$/.test(x.protocol)?x.href:""; }catch(e){ return ""; }
 }
-const UA=navigator.userAgent||"";
-const IS_IOS=/iPhone|iPad|iPod/i.test(UA)||(/Macintosh/i.test(UA)&&navigator.maxTouchPoints>1);
-const IS_ANDROID=/Android/i.test(UA);
-function mapsUrl(addr){
-  const q=encodeURIComponent(addr);
-  // Android : le lien "geo:" ouvre l'appli de plan choisie par défaut par l'utilisateur
-  if(IS_ANDROID) return "geo:0,0?q="+q;
-  return "https://www.google.com/maps/search/?api=1&query="+q;
-}
 function tagClass(type){
   let h=0; for(const ch of norm(type)) h=(h*31+ch.charCodeAt(0))%997;
   return "t"+(h%5);
@@ -256,7 +247,7 @@ function render(){
   const today=new Date(); today.setHours(0,0,0,0);
   const list=upcoming();
   const box=$("liste"); box.textContent="";
-  $("status").textContent = list.length ? list.length+" rendez-vous à venir" : "";
+  $("status").textContent = "";
   if(!list.length){
     const p=document.createElement("div"); p.className="empty";
     p.textContent = DIAG || (EVENTS.length ? "Aucun événement à venir pour le moment. Et si vous en proposiez un ?" : "Aucun événement trouvé dans la feuille.");
@@ -303,28 +294,19 @@ function openEvent(e){
   $("m-date").textContent=fmtLong.format(e.date);
   $("m-heure").textContent=fmtHeure(e)||"Non précisée";
   $("m-lieu").textContent=e.lieu||"Non précisé";
-  const adr=$("m-adr");
-  $("m-maps").hidden=true;
   if(e.adresse){
     const q=encodeURIComponent(e.adresse);
-    adr.textContent=e.adresse; adr.href=mapsUrl(e.adresse);
-    adr.setAttribute("aria-label","Ouvrir "+e.adresse+" dans l'application de plan");
+    $("m-adr").textContent=e.adresse;
     $("mp-apple").href="https://maps.apple.com/?q="+q;
     $("mp-google").href="https://www.google.com/maps/search/?api=1&query="+q;
-    $("mp-waze").href="https://waze.com/ul?q="+q+"&navigate=yes";
-    adr.parentElement.hidden=false; $("m-adr-dt").hidden=false;
-  } else { adr.parentElement.hidden=true; $("m-adr-dt").hidden=true; }
+    $("m-adr").hidden=false; $("m-adr-dt").hidden=false; $("m-maps").hidden=false;
+  } else { $("m-adr").hidden=true; $("m-adr-dt").hidden=true; $("m-maps").hidden=true; }
   $("m-desc").textContent=e.description||"";
   $("m-desc").hidden=!e.description;
   const a=$("m-lien");
   if(e.lien){ a.href=e.lien; a.hidden=false; } else a.hidden=true;
   $("dlg").showModal();
 }
-// Sur iPhone/iPad, un site web ne peut pas savoir quelle appli de plan est utilisée :
-// on laisse donc l'utilisateur choisir (Plans, Google Maps ou Waze).
-$("m-adr").addEventListener("click",ev=>{
-  if(IS_IOS){ ev.preventDefault(); $("m-maps").hidden=!$("m-maps").hidden; }
-});
 $("m-close").addEventListener("click",()=>$("dlg").close());
 $("dlg").addEventListener("click",ev=>{ if(ev.target===$("dlg")) $("dlg").close(); });
 
@@ -335,7 +317,7 @@ async function init(){
   if(f){ const b=$("btn-proposer"); b.href=f; b.hidden=false; }
   if(!CONFIG.SHEET_CSV_URL){
     EVENTS=demoEvents(); render();
-    $("status").textContent="Mode démo (données fictives) · "+$("status").textContent;
+    $("status").textContent="Mode démo (données fictives)";
     return;
   }
   try{
