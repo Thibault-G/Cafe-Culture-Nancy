@@ -165,17 +165,30 @@ function parseCSV(t){
   if(f!==""||r.length){ r.push(f); rows.push(r); }
   return rows;
 }
+const MOIS=["janv","fevr","mars","avr","mai","juin","juil","aout","sept","oct","nov","dec"];
 function parseDate(s){
   s=(s||"").trim();
-  let m=s.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
-  if(m) return new Date(+m[1],+m[2]-1,+m[3]);
-  m=s.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
-  if(m) return new Date(+m[3],+m[2]-1,+m[1]);
+  let m=s.match(/(\d{4})-(\d{1,2})-(\d{1,2})/);                       // 2026-12-05
+  if(m) return mkDate(+m[1],+m[2]-1,+m[3]);
+  m=s.match(/(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{2,4})/);             // 05/12/2026, 05/12/26, 5-12-2026
+  if(m){ let y=+m[3]; if(y<100) y+=2000; return mkDate(y,+m[2]-1,+m[1]); }
+  m=s.match(/(\d{1,2})\s*(?:er)?\s+([A-Za-zÀ-ÿ]+)\.?\s*(\d{4})?/);   // 5 décembre 2026, ven. 5 déc
+  if(m){
+    const n=norm(m[2]).replace(".","");
+    const mi=MOIS.findIndex(p=>n.length>=3&&(p.startsWith(n)||n.startsWith(p)));
+    if(mi>=0) return mkDate(m[3]?+m[3]:new Date().getFullYear(),mi,+m[1]);
+  }
+  m=s.match(/(\d{1,2})\/(\d{1,2})$/);                                 // 05/12 (sans année)
+  if(m) return mkDate(new Date().getFullYear(),+m[2]-1,+m[1]);
   return null;
 }
+function mkDate(y,mo,d){
+  const x=new Date(y,mo,d);
+  return (x.getFullYear()===y&&x.getMonth()===mo&&x.getDate()===d)?x:null;
+}
 function parseTime(s){
-  const m=(s||"").match(/(\d{1,2})[:hH](\d{2})/);
-  return m ? m[1].padStart(2,"0")+":"+m[2] : "";
+  const m=(s||"").match(/(\d{1,2})\s*[:hH]\s*(\d{2})?/);
+  return m ? m[1].padStart(2,"0")+":"+(m[2]||"00") : "";
 }
 function safeUrl(u){
   u=(u||"").trim();
@@ -197,28 +210,44 @@ function tagClass(type){
   return "t"+(h%5);
 }
 
+let DIAG="";   // message d'aide affiché si aucune donnée n'a pu être lue
+
 function rowsToEvents(rows){
-  if(!rows.length) return [];
-  const head=rows[0].map(norm);
+  DIAG="";
+  if(rows.length<2){ DIAG="La feuille publiée est vide (il faut une ligne de titres puis au moins une ligne d'événement)."; return []; }
+  const head=rows[0].map(h=>norm(h.replace(/^\uFEFF/,"")));
   const col=(...names)=>head.findIndex(h=>names.some(n=>h.startsWith(n)));
-  const iT=col("titre","title","nom"), iD=col("date"), iH=col("heure","horaire"),
-        iL=col("lieu","endroit"), iA=col("adresse"), iDe=col("description","detail"),
+  const iT=col("titre","title","nom"), iD=col("date");
+  let iH=col("heure debut","heure de debut","debut"); if(iH<0) iH=col("heure","horaire");
+  const iHf=col("heure fin","heure de fin","fin");
+  const iL=col("lieu","endroit"), iA=col("adresse"), iDe=col("description","detail"),
         iU=col("lien","url","site"), iV=col("valide","statut","moderation"),
         iTy=col("type","categorie","genre");
+  if(iT<0||iD<0){
+    DIAG="Colonnes introuvables. Colonnes lues : « "+rows[0].join(" | ")+" ». Il faut au moins une colonne « titre » et une colonne « date ».";
+    return [];
+  }
   const get=(r,i)=> i>=0 ? (r[i]||"").trim() : "";
-  const out=[];
+  const out=[]; let badDate=0, badEx="", notValidated=0;
   for(const r of rows.slice(1)){
-    const date=parseDate(get(r,iD));
-    const titre=get(r,iT);
-    if(!date||!titre) continue;
+    const titre=get(r,iT), rawDate=get(r,iD);
+    if(!titre&&!rawDate) continue;                       // ligne vide
+    const date=parseDate(rawDate);
+    if(!date){ badDate++; if(!badEx) badEx=rawDate; continue; }
+    if(!titre) continue;
     if(iV>=0){
       const v=norm(get(r,iV));
-      if(!["oui","ok","x","1","true","vrai","valide","yes"].includes(v)) continue;
+      if(!["oui","ok","x","1","true","vrai","valide","yes"].includes(v)){ notValidated++; continue; }
     }
-    out.push({titre,date,heure:parseTime(get(r,iH)),lieu:get(r,iL),adresse:get(r,iA),description:get(r,iDe),lien:safeUrl(get(r,iU)),type:get(r,iTy)});
+    out.push({titre,date,heure:parseTime(get(r,iH)),heureFin:parseTime(get(r,iHf)),lieu:get(r,iL),adresse:get(r,iA),description:get(r,iDe),lien:safeUrl(get(r,iU)),type:get(r,iTy)});
+  }
+  if(!out.length){
+    if(badDate) DIAG="Les dates ne sont pas lisibles (exemple : « "+badEx+" »). Utilisez un format comme 05/12/2026.";
+    else if(notValidated) DIAG="Aucun événement n'est validé (colonne « Validé » à remplir avec OUI).";
   }
   return out;
 }
+function fmtHeure(e){ return e.heure ? (e.heureFin&&e.heureFin!==e.heure ? e.heure+"–"+e.heureFin : e.heure) : ""; }
 
 function demoEvents(){
   const d=n=>{const x=new Date();x.setHours(0,0,0,0);x.setDate(x.getDate()+n);return x};
@@ -248,7 +277,7 @@ function render(){
   $("status").textContent = list.length ? list.length+" rendez-vous à venir" : "";
   if(!list.length){
     const p=document.createElement("div"); p.className="empty";
-    p.textContent = "Aucun événement à venir pour le moment. Et si vous en proposiez un ?";
+    p.textContent = DIAG || (EVENTS.length ? "Aucun événement à venir pour le moment. Et si vous en proposiez un ?" : "Aucun événement trouvé dans la feuille.");
     box.appendChild(p); return;
   }
   let lastMonth="";
@@ -274,7 +303,7 @@ function render(){
     const isToday=e.date.getTime()===today.getTime();
     if(isToday){ const s=document.createElement("span"); s.className="today"; s.textContent="Aujourd'hui"; wh.append(s); }
     else wh.append(fmtDay.format(e.date));
-    const bits=[e.heure,e.lieu].filter(Boolean);
+    const bits=[fmtHeure(e),e.lieu].filter(Boolean);
     if(bits.length) wh.append(" · "+bits.join(" · "));
     info.append(wh);
 
@@ -289,7 +318,7 @@ function openEvent(e){
   if(e.type){ tg.textContent=e.type; tg.className="tag "+tagClass(e.type); tg.hidden=false; } else tg.hidden=true;
   $("m-titre").textContent=e.titre;
   $("m-date").textContent=fmtLong.format(e.date);
-  $("m-heure").textContent=e.heure||"Non précisée";
+  $("m-heure").textContent=fmtHeure(e)||"Non précisée";
   $("m-lieu").textContent=e.lieu||"Non précisé";
   const adr=$("m-adr");
   $("m-maps").hidden=true;
@@ -332,11 +361,20 @@ async function init(){
   }
   try{
     const res=await fetch(CONFIG.SHEET_CSV_URL,{cache:"no-store"});
-    if(!res.ok) throw new Error(res.status);
-    EVENTS=rowsToEvents(parseCSV(await res.text()));
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    const txt=await res.text();
+    if(/^\s*<(!doctype|html)/i.test(txt)) throw new Error("html");
+    EVENTS=rowsToEvents(parseCSV(txt));
     render();
   }catch(err){
-    $("status").textContent="Impossible de charger l'agenda. Vérifiez que la feuille est bien publiée sur le web (format CSV).";
+    const html=String(err.message)==="html";
+    $("liste").textContent="";
+    const p=document.createElement("div"); p.className="empty";
+    p.textContent = html
+      ? "Le lien renseigné est une page web, pas un fichier CSV. Dans Google Sheets, publiez l'onglet au format « Valeurs séparées par des virgules (.csv) » et copiez ce lien."
+      : "Impossible de charger l'agenda ("+err.message+"). Vérifiez que la feuille est bien publiée sur le web au format CSV et que le lien est correct.";
+    $("liste").appendChild(p);
+    $("status").textContent="";
   }
 }
 init();
