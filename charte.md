@@ -1,5 +1,3 @@
-# Charte du site
-
 ## Article 1 : Ce qui définit l’ACN
 
  L’Agenda Culturel Nancy (ACN) est un espace collaboratif qui vise à favoriser les découvertes culturelles en donnant plus de visibilité aux évènements culturels nancéiens. L’agenda de l’ACN a pour vocation première de lister les évènements gratuits afin que le plus grand nombre puisse y participer. Toutefois certains évènements payants pourront également être affichés s’ils ont un intérêt culturel particulier.
