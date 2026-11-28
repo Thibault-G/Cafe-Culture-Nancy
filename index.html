@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Café Culture Nancy</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23faf6ef%22%2F%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2225%22%20r%3D%2217%22%20fill%3D%22%23e8a38a%22%20fill-opacity%3D%22.85%22%2F%3E%3Ccircle%20cx%3D%2240%22%20cy%3D%2225%22%20r%3D%2217%22%20fill%3D%22%239fd0cb%22%20fill-opacity%3D%22.85%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2240%22%20r%3D%2217%22%20fill%3D%22%23f1cf86%22%20fill-opacity%3D%22.85%22%2F%3E%3C%2Fsvg%3E">
+<meta name="theme-color" content="#faf6ef">
 <style>
 :root{
   --bg:#faf6ef; --card:#fffdf9; --text:#2a2420; --muted:#7a6f66; --line:#eadfd0;
@@ -19,13 +21,14 @@
   }
 }
 *{box-sizing:border-box}
+[hidden]{display:none !important}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
 .wrap{max-width:780px;margin:0 auto;padding:0 18px 72px}
 
 /* ---------- En-tête ---------- */
 .hero{position:relative;padding:48px 0 28px;overflow:hidden}
-.hero .rings{position:absolute;right:-30px;top:10px;width:240px;height:150px;opacity:.9;pointer-events:none}
+.hero .rings{position:absolute;right:8px;top:10px;width:240px;height:150px;opacity:.9;pointer-events:none}
 .rings circle{mix-blend-mode:multiply}
 @media (prefers-color-scheme: dark){ .rings circle{mix-blend-mode:screen} }
 @media (max-width:640px){
@@ -36,6 +39,7 @@ body{margin:0;background:var(--bg);color:var(--text);font:16px/1.55 system-ui,-a
 h1{font-family:var(--serif);font-weight:700;font-size:clamp(2rem,6vw,3rem);line-height:1.1;margin:0 0 14px;max-width:16ch}
 .btn{display:inline-block;background:var(--accent);color:var(--accent-text);text-decoration:none;border:0;border-radius:999px;padding:11px 20px;font:inherit;font-weight:600;cursor:pointer}
 .btn:hover{filter:brightness(1.06)}
+.btn.small{padding:7px 15px;font-size:.88rem}
 .btn.secondary{background:transparent;color:var(--text);border:1px solid var(--line)}
 .btn:focus-visible,.event:focus-visible{outline:3px solid var(--accent);outline-offset:2px}
 
@@ -71,6 +75,14 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 .desc{white-space:pre-wrap;margin:0 0 20px}
 .actions{display:flex;gap:10px;flex-wrap:wrap}
 
+/* ---------- Pied de page et charte ---------- */
+.foot{margin-top:56px;text-align:center;font-size:.8rem;color:var(--muted)}
+.foot button{background:none;border:0;padding:6px;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.foot button:hover{color:var(--text)}
+.foot button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
+#dlg-charte{max-height:calc(100% - 32px);overflow:auto}
+.charte{white-space:pre-line;margin:0 0 20px}
+
 </style>
 </head>
 <body>
@@ -84,11 +96,15 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
     </svg>
     <p class="kicker" id="kicker">Agenda culturel collaboratif</p>
     <h1 id="titre">Café Culture Nancy</h1>
-    <a class="btn" id="btn-proposer" href="#" target="_blank" rel="noopener" hidden>Proposer un événement</a>
+    <a class="btn small" id="btn-proposer" href="#" target="_blank" rel="noopener" hidden>Proposer un événement</a>
   </header>
 
   <div class="status" id="status" aria-live="polite">Chargement…</div>
   <main id="liste"></main>
+
+  <footer class="foot">
+    <button type="button" id="btn-charte">Charte du site</button>
+  </footer>
 </div>
 
 <dialog id="dlg">
@@ -110,6 +126,16 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
     <div class="actions">
       <a class="btn" id="m-lien" href="#" target="_blank" rel="noopener noreferrer" hidden>Voir l'événement ↗</a>
       <button class="btn secondary" id="m-close" type="button">Fermer</button>
+    </div>
+  </div>
+</dialog>
+
+<dialog id="dlg-charte">
+  <div class="modal">
+    <h2>Charte du site</h2>
+    <div class="charte" id="charte-texte">COLLEZ ICI VOTRE CHARTE</div>
+    <div class="actions">
+      <button class="btn secondary" id="charte-close" type="button">Fermer</button>
     </div>
   </div>
 </dialog>
@@ -307,6 +333,9 @@ function openEvent(e){
   if(e.lien){ a.href=e.lien; a.hidden=false; } else a.hidden=true;
   $("dlg").showModal();
 }
+$("btn-charte").addEventListener("click",()=>$("dlg-charte").showModal());
+$("charte-close").addEventListener("click",()=>$("dlg-charte").close());
+$("dlg-charte").addEventListener("click",ev=>{ if(ev.target===$("dlg-charte")) $("dlg-charte").close(); });
 $("m-close").addEventListener("click",()=>$("dlg").close());
 $("dlg").addEventListener("click",ev=>{ if(ev.target===$("dlg")) $("dlg").close(); });
 
