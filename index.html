@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Café Culture Nancy</title>
+<title>Agenda Culturel Nancy</title>
 <link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20viewBox%3D%220%200%2064%2064%22%3E%3Crect%20width%3D%2264%22%20height%3D%2264%22%20rx%3D%2214%22%20fill%3D%22%23faf6ef%22%2F%3E%3Ccircle%20cx%3D%2224%22%20cy%3D%2225%22%20r%3D%2217%22%20fill%3D%22%23e8a38a%22%20fill-opacity%3D%22.85%22%2F%3E%3Ccircle%20cx%3D%2240%22%20cy%3D%2225%22%20r%3D%2217%22%20fill%3D%22%239fd0cb%22%20fill-opacity%3D%22.85%22%2F%3E%3Ccircle%20cx%3D%2232%22%20cy%3D%2240%22%20r%3D%2217%22%20fill%3D%22%23f1cf86%22%20fill-opacity%3D%22.85%22%2F%3E%3C%2Fsvg%3E">
 <meta name="theme-color" content="#faf6ef">
 <style>
@@ -77,11 +77,19 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 
 /* ---------- Pied de page et charte ---------- */
 .foot{margin-top:56px;text-align:center;font-size:.8rem;color:var(--muted)}
-.foot button{background:none;border:0;padding:6px;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
+.foot button{margin:0 4px;background:none;border:0;padding:6px;color:inherit;font:inherit;text-decoration:underline;text-underline-offset:3px;cursor:pointer}
 .foot button:hover{color:var(--text)}
 .foot button:focus-visible{outline:3px solid var(--accent);outline-offset:2px;border-radius:4px}
 #dlg-charte{max-height:calc(100% - 32px);overflow:auto}
-.charte{white-space:pre-line;margin:0 0 20px}
+.charte{margin:0 0 20px}
+.charte h3{font-family:var(--serif);font-size:1.25rem;margin:22px 0 8px}
+.charte h4{font-family:var(--serif);font-size:1.1rem;margin:18px 0 6px}
+.charte h5{font-size:1rem;margin:14px 0 4px;color:var(--muted)}
+.charte p{margin:0 0 12px}
+.charte ul,.charte ol{margin:0 0 12px;padding-left:1.4em}
+.charte li{margin:3px 0}
+.charte a{color:var(--accent)}
+.charte>:first-child{margin-top:0}
 
 </style>
 </head>
@@ -94,8 +102,8 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
       <circle cx="130" cy="75" r="60" fill="#9fd0cb"/>
       <circle cx="170" cy="75" r="45" fill="#f1cf86"/>
     </svg>
-    <p class="kicker" id="kicker">Agenda culturel collaboratif</p>
-    <h1 id="titre">Café Culture Nancy</h1>
+    <p class="kicker" id="kicker">Indépendant et collaboratif</p>
+    <h1 id="titre">Agenda Culturel Nancy</h1>
     <a class="btn small" id="btn-proposer" href="#" target="_blank" rel="noopener" hidden>Proposer un événement</a>
   </header>
 
@@ -104,6 +112,8 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 
   <footer class="foot">
     <button type="button" id="btn-charte">Charte du site</button>
+    <span aria-hidden="true">·</span>
+    <button type="button" id="btn-contact">Nous contacter</button>
   </footer>
 </div>
 
@@ -133,7 +143,7 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 <dialog id="dlg-charte">
   <div class="modal">
     <h2>Charte du site</h2>
-    <div class="charte" id="charte-texte">COLLEZ ICI VOTRE CHARTE</div>
+    <div class="charte" id="charte-texte">Chargement…</div>
     <div class="actions">
       <button class="btn secondary" id="charte-close" type="button">Fermer</button>
     </div>
@@ -143,12 +153,17 @@ dialog::backdrop{background:rgba(30,20,15,.55)}
 <script>
 /* ============ CONFIGURATION (à modifier) ============ */
 const CONFIG = {
-  SURTITRE: "Agenda culturel collaboratif",
-  TITRE: "Café Culture Nancy",
+  SURTITRE: "Indépendant et collaboratif",
+  TITRE: "Agenda Culturel Nancy",
   // Lien CSV de votre Google Sheet publié (Fichier > Partager > Publier sur le Web > format CSV)
   SHEET_CSV_URL: "https://docs.google.com/spreadsheets/d/e/2PACX-1vSL4QJlIe9LFoeQlo2NYoeRIsddLqVr4Vaf-nBe46lX0dOn8wNnnOjZ7N2btQwf_XHgpXE0llq6HTqz/pub?gid=0&single=true&output=csv",
   // Lien de votre Google Form de proposition d'événement (laisser vide pour masquer les boutons)
   FORM_URL: "https://docs.google.com/forms/d/e/1FAIpQLSce-ycyaAGTHZx2LrHb62ahLdgCeifgEfA0uT5-OsYsfVIogg/viewform?usp=dialog"
+  // Fichier texte de la charte (format Markdown), placé à côté de index.html
+  CHARTE_URL: "charte.md",
+  // Adresse de contact, découpée pour limiter la collecte par les robots à spam
+  CONTACT_NOM: "agenda-culturel-nancy",
+  CONTACT_DOMAINE: "proton.me"
 };
 /* ==================================================== */
 
@@ -333,7 +348,60 @@ function openEvent(e){
   if(e.lien){ a.href=e.lien; a.hidden=false; } else a.hidden=true;
   $("dlg").showModal();
 }
-$("btn-charte").addEventListener("click",()=>$("dlg-charte").showModal());
+// ---------- Charte (lue dans un fichier séparé) ----------
+const esc = s => s.replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;");
+function inline(s){
+  s=esc(s);
+  s=s.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+|mailto:[^\s)]+)\)/g,'<a href="$2" target="_blank" rel="noopener noreferrer">$1</a>');
+  s=s.replace(/\*\*([^*]+)\*\*/g,"<strong>$1</strong>");
+  s=s.replace(/(^|[^*])\*([^*\s][^*]*)\*/g,"$1<em>$2</em>");
+  return s;
+}
+function markdown(src){
+  const out=[]; let para=[], list=null;
+  const flushP=()=>{ if(para.length){ out.push("<p>"+inline(para.join(" "))+"</p>"); para=[]; } };
+  const flushL=()=>{ if(list){ out.push("<"+list.t+">"+list.items.map(i=>"<li>"+inline(i)+"</li>").join("")+"</"+list.t+">"); list=null; } };
+  for(const raw of src.replace(/\r/g,"").split("\n")){
+    const line=raw.replace(/\s+$/,"");
+    let m;
+    if(!line.trim()){ flushP(); flushL(); continue; }
+    if((m=line.match(/^(#{1,4})\s+(.*)$/))){
+      flushP(); flushL();
+      const lvl=Math.min(m[1].length+2,5);                 // # -> h3, ## -> h4, ### et plus -> h5
+      out.push("<h"+lvl+">"+inline(m[2])+"</h"+lvl+">"); continue;
+    }
+    if((m=line.match(/^\s*[-*+]\s+(.*)$/))){
+      flushP(); if(!list||list.t!=="ul"){ flushL(); list={t:"ul",items:[]}; }
+      list.items.push(m[1]); continue;
+    }
+    if((m=line.match(/^\s*\d+[.)]\s+(.*)$/))){
+      flushP(); if(!list||list.t!=="ol"){ flushL(); list={t:"ol",items:[]}; }
+      list.items.push(m[1]); continue;
+    }
+    if(list && /^\s+\S/.test(raw)){ list.items[list.items.length-1]+=" "+line.trim(); continue; }   // suite d'un point de liste
+    flushL(); para.push(line.trim());
+  }
+  flushP(); flushL();
+  return out.join("\n");
+}
+let charteChargee=false;
+async function ouvrirCharte(){
+  $("dlg-charte").showModal();
+  if(charteChargee) return;
+  try{
+    const res=await fetch(CONFIG.CHARTE_URL,{cache:"no-cache"});
+    if(!res.ok) throw new Error("HTTP "+res.status);
+    $("charte-texte").innerHTML=markdown(await res.text());
+    charteChargee=true;
+  }catch(err){
+    $("charte-texte").textContent="La charte n'a pas pu être chargée pour le moment.";
+  }
+}
+$("btn-charte").addEventListener("click",ouvrirCharte);
+// ---------- Contact : l'adresse n'apparaît jamais en clair dans le code ----------
+$("btn-contact").addEventListener("click",()=>{
+  window.location.href="mail"+"to:"+CONFIG.CONTACT_NOM+"@"+CONFIG.CONTACT_DOMAINE+"?subject="+encodeURIComponent("Contact — Agenda Culturel Nancy");
+});
 $("charte-close").addEventListener("click",()=>$("dlg-charte").close());
 $("dlg-charte").addEventListener("click",ev=>{ if(ev.target===$("dlg-charte")) $("dlg-charte").close(); });
 $("m-close").addEventListener("click",()=>$("dlg").close());
